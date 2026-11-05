@@ -1,0 +1,38 @@
+# TEMPLATE ONLY. Requires operator provisioning and an approved staging release.
+[Unit]
+Description=Vivaion Conecta - isolated synthetic demo
+After=network.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+StateDirectory=vivaion-conecta-demo
+StateDirectoryMode=0700
+WorkingDirectory=/srv/vivaion-conecta/current
+EnvironmentFile=/etc/vivaion-conecta-demo.env
+Environment=APP_ENV=staging
+Environment=DATABASE_PATH=/var/lib/vivaion-conecta-demo/conecta.sqlite3
+Environment=OLLAMA_ENABLED=false
+ExecStart=/srv/vivaion-conecta/venv/bin/python -m uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8088 --workers 1 --no-access-log --limit-concurrency 64 --backlog 128 --timeout-keep-alive 5 --proxy-headers --forwarded-allow-ips 127.0.0.1
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+MemoryHigh=192M
+MemoryMax=384M
+CPUQuota=100%
+CPUWeight=25
+Nice=10
+TasksMax=64
+LimitNOFILE=4096
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost
+RestrictNamespaces=yes
+
+[Install]
+WantedBy=multi-user.target

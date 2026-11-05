@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "transport": "offline browser + real in-process ASGI API",
+  "desktop": "1440x1040",
+  "mobile": "390x844",
+  "horizontal_overflow": false,
+  "javascript_errors": [],
+  "scenarios": [
+    "initial catalog",
+    "pagination",
+    "natural language rules",
+    "modality",
+    "profile",
+    "simulated interest",
+    "profession",
+    "unknown search fallback",
+    "urgent notice",
+    "40-account chooser",
+    "session",
+    "edit persistence",
+    "logout",
+    "mobile filters",
+    "mobile profile"
+  ]
+}

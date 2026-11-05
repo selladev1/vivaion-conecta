@@ -1,0 +1,39 @@
+{
+  "environment": "local development container, NOT Vivaion VPS",
+  "python": "3.13.5",
+  "ollama_calls": 0,
+  "database": "SQLite WAL, 40 synthetic profiles",
+  "http": {
+    "requests": 120,
+    "concurrency": 10,
+    "statuses": {
+      "200": 120
+    },
+    "wall_seconds": 0.324,
+    "median_ms": 24.57,
+    "p95_ms": 37.41,
+    "max_ms": 49.87
+  },
+  "process_rss_after_load_mib": 119.77,
+  "assets": {
+    "public/index.html": {
+      "bytes": 12958,
+      "gzip_bytes": 4262
+    },
+    "public/assets/app.js": {
+      "bytes": 16409,
+      "gzip_bytes": 5379
+    },
+    "public/assets/mark.svg": {
+      "bytes": 296,
+      "gzip_bytes": 218
+    },
+    "public/assets/style.css": {
+      "bytes": 21887,
+      "gzip_bytes": 5730
+    }
+  },
+  "frontend_total_bytes": 51550,
+  "frontend_total_gzip_bytes": 15589,
+  "limitations": "Not a capacity guarantee. Excludes public network, TLS proxy, VPS contention, real clinical quality and model inference. Rate limits remained enabled."
+}
