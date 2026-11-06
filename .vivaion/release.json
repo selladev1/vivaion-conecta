@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "dependencies": "none",
+  "check": [
+    [
+      "python3",
+      "-B",
+      "-c",
+      "import ast,re; from pathlib import Path as P; py=sorted(P('app').rglob('*.py')); assert len(py)>=5; [ast.parse(p.read_text(encoding='utf-8'),filename=str(p)) for p in py]; required=['requirements.lock','public/index.html','public/assets/app.js','public/assets/style.css','public/assets/mark.svg']; assert all(P(p).is_file() and not P(p).is_symlink() for p in required); assert all(not p.is_symlink() for root in ('app','public') for p in P(root).rglob('*')); pins=[x.strip() for x in P('requirements.lock').read_text().splitlines() if x.strip() and not x.lstrip().startswith('#')]; assert pins and all(re.fullmatch(r'[A-Za-z0-9_.-]+==[A-Za-z0-9_.+!-]+',x) for x in pins); print('CHECK_PYTHON_AND_ASSETS_OK')"
+    ],
+    [
+      "node",
+      "--check",
+      "public/assets/app.js"
+    ]
+  ],
+  "build": [
+    [
+      "sh",
+      "-c",
+      "set -eu; test ! -e release-output; mkdir release-output; cp -R app public requirements.lock release-output/; test -f release-output/app/main.py; test -f release-output/public/index.html; test -f release-output/requirements.lock; printf 'BUILD_SOURCE_ARTIFACT_OK\\n'"
+    ]
+  ]
+}
