@@ -215,7 +215,7 @@ def test_ollama_no_ssrf_or_external_egress(url):
 
 
 def test_ai_rejects_unknown_topics_falls_back():
-    transport=httpx.MockTransport(lambda req:httpx.Response(200,json={'message':{'content':json.dumps({'matches':[{'topic':'inventado','evidence':'Uma dificuldade'}]})}}))
+    transport=httpx.MockTransport(lambda req:httpx.Response(200,json={'message':{'content':json.dumps({'topic':'inventado','evidence':'Uma dificuldade'})}}))
     original=httpx.AsyncClient
     with patch('app.ai.httpx.AsyncClient',side_effect=lambda **kw:original(transport=transport,**kw)):
         ai=LocalInterpreter(enabled=True)
@@ -228,7 +228,7 @@ def test_ai_schema_confirmation_cache_and_bounds():
     seen=[]
     def handle(req):
         seen.append(json.loads(req.content))
-        return httpx.Response(200,json={'message':{'content':json.dumps({'matches':[{'topic':'ansiedade','evidence':'Fico tenso diante das pessoas'}]})}})
+        return httpx.Response(200,json={'message':{'content':json.dumps({'topic':'ansiedade','evidence':'Fico tenso diante das pessoas'})}})
     original=httpx.AsyncClient
     with patch('app.ai.httpx.AsyncClient',side_effect=lambda **kw:original(transport=httpx.MockTransport(handle),**kw)):
         ai=LocalInterpreter(enabled=True)
@@ -237,14 +237,14 @@ def test_ai_schema_confirmation_cache_and_bounds():
     assert first['requires_confirmation'] and first['topics']==['ansiedade']
     assert second['ai_status']=='cache' and len(seen)==1
     assert seen[0]['format']['additionalProperties'] is False
-    assert seen[0]['options']['num_predict']==128
-    assert seen[0]['format']['properties']['matches']['maxItems']==2
+    assert seen[0]['options']['num_predict']==96
+    assert 'ansiedade' in seen[0]['format']['properties']['topic']['enum']
     assert all('tenso' not in key for key in ai.cache)
 
 
 def test_ai_vague_question_rejects_generic_evidence():
     generic='Gostaria de descobrir profissionais para minha familia, mas nao conheco a especialidade apropriada.'
-    response={'matches':[{'topic':'ansiedade','evidence':'minha familia'}]}
+    response={'topic':'ansiedade','evidence':'minha familia'}
     original=httpx.AsyncClient
     with patch('app.ai.httpx.AsyncClient',side_effect=lambda **kw:original(transport=httpx.MockTransport(lambda req:httpx.Response(200,json={'message':{'content':json.dumps(response)}})),**kw)):
         ai=LocalInterpreter(enabled=True)
@@ -255,7 +255,7 @@ def test_ai_vague_question_rejects_generic_evidence():
 
 def test_ai_vague_question_rejects_invented_quote():
     generic='Gostaria de descobrir profissionais para minha familia, mas nao conheco a especialidade apropriada.'
-    response={'matches':[{'topic':'linguagem','evidence':'meu filho nao fala'}]}
+    response={'topic':'linguagem','evidence':'meu filho nao fala'}
     original=httpx.AsyncClient
     with patch('app.ai.httpx.AsyncClient',side_effect=lambda **kw:original(transport=httpx.MockTransport(lambda req:httpx.Response(200,json={'message':{'content':json.dumps(response)}})),**kw)):
         ai=LocalInterpreter(enabled=True)
@@ -265,7 +265,7 @@ def test_ai_vague_question_rejects_invented_quote():
 
 def test_ai_requires_quote_and_rejects_extra_fields():
     original=httpx.AsyncClient
-    response={'matches':[{'topic':'ansiedade','evidence':'Fico tenso diante das pessoas','extra':'x'}]}
+    response={'topic':'ansiedade','evidence':'Fico tenso diante das pessoas','extra':'x'}
     with patch('app.ai.httpx.AsyncClient',side_effect=lambda **kw:original(transport=httpx.MockTransport(lambda req:httpx.Response(200,json={'message':{'content':json.dumps(response)}})),**kw)):
         ai=LocalInterpreter(enabled=True)
         result=asyncio.run(ai.interpret('Fico tenso diante das pessoas',True))
