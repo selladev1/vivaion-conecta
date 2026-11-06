@@ -57,6 +57,16 @@
 
 **Dependencia objetiva:** um operador com autoridade de administracao da plataforma precisa admitir `selladev1/vivaion-conecta` como projeto isolado, criar/vincular seu workspace e contrato de release e habilitar o staging proprio no catalogo RAPID. Depois da admissao, o fluxo permitido comeca por `staging_provision` e pela preparacao de candidato; antes disso, chamadas de staging devem continuar falhando de forma segura com `staging_project_disabled`.
 
+## Atualizacao de onboarding em 06/11/2026
+
+- O catalogo passou a reconhecer `vivaion-conecta`, com contrato proprio e perfis `universal-check` e `universal-build`. A separacao do projeto em relacao ao Unyom foi preservada.
+- O workspace MCP `vivaion-conecta` foi reconhecido em `mcp/conecta-onboarding`, limpo, no commit `ff27e1b43a402231a8c3a6327400a0dbc08cf2e8`, com capacidades limitadas a `git_local` e `git_remote`.
+- O Git Gateway buscou autenticadamente `mcp/conecta-demo-mvp` e confirmou o HEAD remoto `500b85d8d8830b5adf3e3e126beb4a6e1bd4cecd`. Nenhum checkout foi modificado: as etapas oficiais de importacao/finalizacao retornaram `INVALID_ARGUMENT`, portanto a sincronizacao nao foi repetida nem contornada.
+- O catalogo continua com `staging_enabled=false` e `publication=disabled` para o Conecta. A sessao isolada de release continua admitindo somente `unyom`; isso nao pode ser reutilizado para este projeto.
+- O workspace registrado ainda nao possui `.vivaion/release.json`. Como o schema da receita nao foi disponibilizado pelo contrato ativo, nao deve ser criado um arquivo especulativo.
+
+**Proximo desbloqueio oficial:** corrigir ou disponibilizar o fluxo de importacao do Git Gateway para este workspace, fornecer o schema/validador da receita de release e habilitar staging isolado no contrato do Conecta. So depois sera seguro criar candidato, executar preflight e provisionar homologacao.
+
 ## Condicoes para afirmar "online"
 
 Apenas quando houver provisionamento confirmado, release implantada, URL publica de staging HTTPS acessivel, verificacao da build servida, autorizacao do operador e teste real concluido. Antes disso, nao divulgar URL como operacional.
