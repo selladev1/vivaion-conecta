@@ -6,8 +6,8 @@ STOP={'a','o','as','os','de','do','da','em','um','uma','para','por','com','e','q
 def public_profile(profile):
     return {k:v for k,v in profile.items() if k!='email'}
 
-def search_catalog(profiles,query='',profession='',city='',mode='',audience='',topics=(),page=1,page_size=12,accepting=False):
-    interpretation=interpret_rules(query)
+def search_catalog(profiles,query='',profession='',city='',mode='',audience='',topics=(),page=1,page_size=12,accepting=False,interpretation=None):
+    interpretation=interpretation or interpret_rules(query)
     if interpretation['source']=='safety_notice':
         return {'items':[],'total':0,'page':page,'pages':0,'interpretation':interpretation}
     inferred=topics or interpretation['topics']

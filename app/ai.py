@@ -105,8 +105,8 @@ class LocalInterpreter:
                 matched=bool(topics)
                 result={'source':'ollama','topics':topics,'professions':[],'audience':None,
                         'needs_clarification':not matched,'ai_status':'ok' if matched else 'no_match',
-                        'requires_confirmation':matched,
-                        'message':('Temas experimentais extraidos do seu texto. Confira antes de aplicar; isto nao e avaliacao de saude.'
+                        'requires_confirmation':False,
+                        'message':('Usamos IA local para relacionar a busca a um tema. Isto nao e avaliacao de saude e o filtro pode ser removido.'
                                    if matched else 'Nao encontramos evidencias suficientes para sugerir uma area. Descreva a dificuldade ou escolha os filtros.')}
                 self.cache[key]=(time.monotonic()+300,result)
                 while len(self.cache)>128: self.cache.popitem(last=False)

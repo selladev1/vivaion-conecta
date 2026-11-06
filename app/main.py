@@ -20,7 +20,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from .ai import LocalInterpreter
 from .search import search_catalog, public_profile
 from .storage import Repository
-from .taxonomy import TOPICS, PROFESSIONS, AUDIENCES, privacy_violation
+from .taxonomy import TOPICS, PROFESSIONS, AUDIENCES, interpret_rules, privacy_violation
 
 ROOT=Path(__file__).resolve().parent.parent
 
@@ -37,6 +37,9 @@ class SearchInput(StrictModel):
     page:int=Field(default=1,ge=1,le=10000)
     page_size:int=Field(default=12,ge=1,le=24)
     accepting:bool=False
+    # One page-level privacy choice, never an approval for a suggested topic.
+    allow_ai:bool=False
+    ai_opt_out:bool=False
     @field_validator('query')
     @classmethod
     def no_pii(cls,v):
@@ -203,9 +206,19 @@ def create_app(db_path=None,environment=None,ai_enabled=None,access_token=None):
         return {'professions':PROFESSIONS,'audiences':AUDIENCES,'topics':{k:{'label':v['label'],'professions':v['professions']} for k,v in TOPICS.items()},'cities':sorted({p['city']+' / '+p['state'] for p in repository.catalog()}),'demo':True,'ai_enabled':ai.enabled,'count':len(repository.catalog())}
 
     @app.post('/api/search')
-    def search(data:SearchInput):
+    async def search(data:SearchInput):
         app.state.searches+=1
-        return search_catalog(repository.catalog(),**data.model_dump())
+        values=data.model_dump()
+        allow_ai=values.pop('allow_ai')
+        ai_opt_out=values.pop('ai_opt_out')
+        interpretation=interpret_rules(data.query)
+        # Deterministic evidence always wins. The local model is only a bounded fallback
+        # for an otherwise unclear free-text search, never for manual filters or safety text.
+        if (data.query and not ai_opt_out and not data.topics and not data.profession
+                and interpretation['source']!='safety_notice'
+                and not interpretation['topics'] and not interpretation['professions']):
+            interpretation=await ai.interpret(data.query,allow_ai)
+        return search_catalog(repository.catalog(),interpretation=interpretation,**values)
 
     @app.post('/api/interpret')
     async def interpret(data:InterpretInput):

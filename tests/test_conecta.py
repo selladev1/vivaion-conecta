@@ -2,7 +2,7 @@ import asyncio
 import hashlib
 import json
 from collections import Counter
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 from fastapi.testclient import TestClient
@@ -128,6 +128,25 @@ def test_api_search_and_headers(client):
     assert "frame-ancestors 'none'" in r.headers['content-security-policy']
     assert all('email' not in p for p in r.json()['items'])
 
+def test_api_search_applies_local_ai_automatically_only_when_allowed(client):
+    interpretation={'source':'ollama','topics':['ansiedade'],'professions':[],
+                    'audience':None,'needs_clarification':False,'ai_status':'ok',
+                    'requires_confirmation':False,'message':'Tema local'}
+    with patch.object(client.app.state.ai,'interpret',new=AsyncMock(return_value=interpretation)) as interpret:
+        result=client.post('/api/search',json={'query':'Fico nervoso em grupos e minhas maos suam','allow_ai':True})
+    assert result.status_code==200
+    assert result.json()['interpretation']['source']=='ollama'
+    assert result.json()['interpretation']['topics']==['ansiedade']
+    assert result.json()['total']>0
+    interpret.assert_awaited_once_with('Fico nervoso em grupos e minhas maos suam',True)
+
+def test_api_search_does_not_call_ai_for_rules_or_opt_out(client):
+    with patch.object(client.app.state.ai,'interpret',new=AsyncMock()) as interpret:
+        deterministic=client.post('/api/search',json={'query':'Meu filho de 4 anos fala poucas palavras','allow_ai':True})
+        opted_out=client.post('/api/search',json={'query':'Uma busca desconhecida','allow_ai':True,'ai_opt_out':True})
+    assert deterministic.status_code==200 and opted_out.status_code==200
+    assert interpret.await_count==0
+
 @pytest.mark.parametrize('body',[
  {'query':'x'*601},{'query':'demo@example.test'},{'query':'123.456.789-00'},
  {'query':'(45) 99999-1234'},{'profession':'medicina'},{'topics':['inventado']},
@@ -224,7 +243,7 @@ def test_ai_rejects_unknown_topics_falls_back():
     assert ai.cooldown_until>0
 
 
-def test_ai_schema_confirmation_cache_and_bounds():
+def test_ai_schema_auto_apply_cache_and_bounds():
     seen=[]
     def handle(req):
         seen.append(json.loads(req.content))
@@ -234,7 +253,7 @@ def test_ai_schema_confirmation_cache_and_bounds():
         ai=LocalInterpreter(enabled=True)
         first=asyncio.run(ai.interpret('Fico tenso diante das pessoas',True))
         second=asyncio.run(ai.interpret('Fico tenso diante das pessoas',True))
-    assert first['requires_confirmation'] and first['topics']==['ansiedade']
+    assert not first['requires_confirmation'] and first['topics']==['ansiedade']
     assert second['ai_status']=='cache' and len(seen)==1
     assert seen[0]['format']['additionalProperties'] is False
     assert seen[0]['options']['num_predict']==96
@@ -358,3 +377,13 @@ def test_template_escapes_used_and_no_tracking():
     html=(ROOT/'public/index.html').read_text()
     assert '<html lang="pt-BR">' in html
     assert 'https://' not in html
+
+def test_automatic_search_ui_has_no_second_ai_confirmation():
+    from app.main import ROOT
+    js=(ROOT/'public/assets/app.js').read_text()
+    html=(ROOT/'public/index.html').read_text()
+    assert "api('/api/interpret'" not in js
+    assert 'Confirmar temas e filtrar' not in js
+    assert 'Interpretar com IA local' not in html
+    assert 'animateResultCards' in js and 'card.inert=true' in js
+    assert 'prefers-reduced-motion' in js

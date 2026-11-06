@@ -2,6 +2,14 @@
 
 ## Validados localmente
 
+### Busca automática e animação dos resultados — 06/11/2026
+
+- A rota `/api/search` agora usa regras determinísticas primeiro e, com o consentimento único da página, consulta a IA local somente para texto sem correspondência confiável. A sugestão validada é aplicada na própria resposta; não existe confirmação posterior no cliente.
+- Temas originados pela IA são apresentados como filtros removíveis. Removê-los desativa a IA para aquela consulta e preserva a busca por filtros.
+- Os resultados de uma pesquisa submetida entram uma única vez na grade e são animados com Web Animations API: começam como cartas sobrepostas e inclinadas na base da caixa de busca, depois chegam às células finais. A animação é cancelada em uma nova busca, torna os cards inertes enquanto ocultos e respeita `prefers-reduced-motion`.
+- Suite local: 80 testes aprovados; `node --check public/assets/app.js` e `git diff --check` aprovados. Validação em navegador local confirmou a busca determinística “Meu filho de 4 anos fala poucas palavras” com cinco perfis e a mensagem de tema correspondente.
+- A IA real/Qwen, CPU/RAM na VPS, DNS/TLS e publicação continuam pendentes de um projeto de staging autorizado no MCP.
+
 - 40 usuarios e 40 perfis sinteticos; seed idempotente e preservacao de edicoes.
 - Distribuicao: 16 fono, 12 psicologia, 4 terapia ocupacional, 4 nutricao, 4 fisioterapia.
 - Busca por temas, modalidade, local e idade; paginacao sem duplicatas.
