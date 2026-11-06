@@ -48,6 +48,15 @@
 - `vivaion_root_status` -> sessao administrativa **inativa**.
 - `vivaion_root_session_prepare` criou um desafio com `state=AWAITING_APPROVAL`, que **nao** representa autorizacao. Como expira, um desafio novo pode ser necessario no momento da assinatura.
 
+## Revalidacao do MCP em 06/11/2026
+
+- `vivaion_access_status(project_id="vivaion-conecta")` reportou o worker de engenharia saudavel, mas a publicacao continua bloqueada por `RAPID_ADMISSION_NOT_VERIFIED` e `PRODUCTION_AUTHORIZATION_NOT_VERIFIED`.
+- `release_workflow(action="catalog")` continua sem `vivaion-conecta`: os unicos projetos configurados sao `mcp`, `unyom` e `vivian-lab`. Portanto nao existe candidato, workspace de release ou ambiente de staging oficial para este projeto.
+- `release_session_catalog()` confirmou que a sessao de release isolada possui somente `unyom` como projeto admitido e nao oferece acoes para o Conecta.
+- `autonomy_readiness(project_id="vivaion-conecta")` nao encontrou bloqueio de saude do worker, mas tambem nao prova homologacao nem admissao RAPID. Isto nao autoriza provisionamento, deploy, DNS, TLS, reinicio ou uso de rotinas de outro projeto.
+
+**Dependencia objetiva:** um operador com autoridade de administracao da plataforma precisa admitir `selladev1/vivaion-conecta` como projeto isolado, criar/vincular seu workspace e contrato de release e habilitar o staging proprio no catalogo RAPID. Depois da admissao, o fluxo permitido comeca por `staging_provision` e pela preparacao de candidato; antes disso, chamadas de staging devem continuar falhando de forma segura com `staging_project_disabled`.
+
 ## Condicoes para afirmar "online"
 
 Apenas quando houver provisionamento confirmado, release implantada, URL publica de staging HTTPS acessivel, verificacao da build servida, autorizacao do operador e teste real concluido. Antes disso, nao divulgar URL como operacional.
