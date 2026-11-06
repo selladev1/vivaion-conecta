@@ -1,0 +1,17 @@
+# TEMPLATE ONLY. DNS/TLS, port availability and project admission are NOT verified.
+# Never apply to an existing Vivaion academic VirtualHost.
+<VirtualHost *:443>
+    ServerName conecta-hml.vivaion.com.br
+    SSLEngine on
+    SSLCertificateFile /etc/letsencrypt/live/conecta-hml.vivaion.com.br/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/conecta-hml.vivaion.com.br/privkey.pem
+    ProxyPreserveHost On
+    RequestHeader set X-Forwarded-Proto "https"
+    ProxyPass / http://127.0.0.1:8088/ connectiontimeout=3 timeout=15
+    ProxyPassReverse / http://127.0.0.1:8088/
+    Header always set X-Robots-Tag "noindex, nofollow, noarchive"
+    LimitRequestBody 16384
+    ErrorLog ${APACHE_LOG_DIR}/conecta-demo-error.log
+    # Route only: excludes query string, IP, Referer and request body.
+    CustomLog ${APACHE_LOG_DIR}/conecta-demo-access.log "%t %m %U %>s %D"
+</VirtualHost>
