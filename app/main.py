@@ -7,6 +7,7 @@ import secrets
 import threading
 import time
 from collections import OrderedDict, deque
+import math
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlparse
@@ -165,7 +166,10 @@ def create_app(db_path=None,environment=None,ai_enabled=None,access_token=None):
     if env=='staging' and (len(token)<24 or not origin_list or any(urlparse(o).scheme!='https' or not urlparse(o).netloc or urlparse(o).path not in ('','/') for o in origin_list)):
         raise RuntimeError('Staging requires DEMO_ACCESS_TOKEN >=24 chars and exact HTTPS APP_ORIGINS')
     repository=Repository(db_path or os.getenv('DATABASE_PATH',str(ROOT/'var'/'conecta-demo.sqlite3')))
-    ai=LocalInterpreter(enabled=ai_enabled if ai_enabled is not None else os.getenv('OLLAMA_ENABLED','false').lower()=='true',url=os.getenv('OLLAMA_URL','http://127.0.0.1:11434'),model=os.getenv('OLLAMA_MODEL','qwen2.5:3b'))
+    ai_timeout=float(os.getenv('OLLAMA_TIMEOUT_SECONDS','14.0'))
+    if not math.isfinite(ai_timeout) or ai_timeout<1 or ai_timeout>18:
+        raise RuntimeError('OLLAMA_TIMEOUT_SECONDS must be between 1 and 18')
+    ai=LocalInterpreter(enabled=ai_enabled if ai_enabled is not None else os.getenv('OLLAMA_ENABLED','false').lower()=='true',url=os.getenv('OLLAMA_URL','http://127.0.0.1:11434'),model=os.getenv('OLLAMA_MODEL','qwen2.5:1.5b'),timeout=ai_timeout)
     app=FastAPI(title='Vivaion Conecta - demo',docs_url=None,redoc_url=None,openapi_url=None)
     app.state.repository=repository
     app.state.ai=ai
