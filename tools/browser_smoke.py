@@ -37,6 +37,11 @@ with tempfile.TemporaryDirectory() as d:
     return new Response(result.body,{status:result.status,headers:{'Content-Type':'application/json'}});
   }; }''')
   page.add_script_tag(content=(ROOT/'public/assets/app.js').read_text())
+  expect(page.locator('#directory')).to_be_hidden()
+  expect(page.locator('#browse-all')).to_be_visible()
+  expect(page.locator('.profile-card')).to_have_count(0)
+  page.locator('#browse-all').click()
+  expect(page.locator('#directory')).to_be_visible()
   expect(page.locator('.profile-card')).to_have_count(12)
   expect(page.locator('#results-summary')).to_contain_text('40')
   page.screenshot(path=str(ARTIFACTS/'conecta-desktop.png'),full_page=True)
@@ -61,7 +66,7 @@ with tempfile.TemporaryDirectory() as d:
   page.locator('#profession').select_option('')
   page.locator('#search-button').click()
   expect(page.locator('#empty-state')).to_be_visible()
-  expect(page.locator('#ai-box')).to_be_visible()
+  expect(page.locator('#ai-box')).to_have_count(0)
   page.locator('#clear-filters').click()
   page.locator('#search-query').fill('dor no peito')
   page.locator('#search-button').click()
@@ -90,13 +95,15 @@ with tempfile.TemporaryDirectory() as d:
   page.evaluate('scrollTo(0,0)')
   page.screenshot(path=str(ARTIFACTS/'conecta-mobile.png'),full_page=True)
   assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+  expect(page.locator('#mobile-refine')).to_be_visible()
+  page.locator('#mobile-refine').click()
   page.locator('#profession').select_option('fisio')
   expect(page.locator('.profile-card')).to_have_count(4)
   page.locator('#cards .card-link').first.click()
   expect(page.locator('#profile-dialog')).to_be_visible()
   page.keyboard.press('Escape')
   assert not errors,errors
-  report={'status':'passed','transport':'offline browser + real in-process ASGI API','desktop':'1440x1040','mobile':'390x844','horizontal_overflow':False,'javascript_errors':errors,'scenarios':['initial catalog','pagination','natural language rules','modality','profile','simulated interest','profession','unknown search fallback','urgent notice','40-account chooser','session','edit persistence','logout','mobile filters','mobile profile']}
+  report={'status':'passed','transport':'offline browser + real in-process ASGI API','desktop':'1440x1040','mobile':'390x844','horizontal_overflow':False,'javascript_errors':errors,'scenarios':['intentional directory reveal','pagination','natural language rules','modality','profile','simulated interest','profession','unknown search fallback','urgent notice','40-account chooser','session','edit persistence','logout','mobile refine panel','mobile profile']}
   (ARTIFACTS/'browser-results.json').write_text(json.dumps(report,indent=2))
   print(json.dumps(report,indent=2))
   browser.close()

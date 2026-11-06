@@ -387,3 +387,5 @@ def test_automatic_search_ui_has_no_second_ai_confirmation():
     assert 'Interpretar com IA local' not in html
     assert 'animateResultCards' in js and 'card.inert=true' in js
     assert 'prefers-reduced-motion' in js
+    assert 'id="browse-all"' in html and 'id="directory"' in html and 'hidden' in html
+    assert 'id="mobile-refine"' in html and 'activateDirectory' in js

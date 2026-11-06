@@ -10,6 +10,13 @@
 - Suite local: 80 testes aprovados; `node --check public/assets/app.js` e `git diff --check` aprovados. Validação em navegador local confirmou a busca determinística “Meu filho de 4 anos fala poucas palavras” com cinco perfis e a mensagem de tema correspondente.
 - A IA real/Qwen, CPU/RAM na VPS, DNS/TLS e publicação continuam pendentes de um projeto de staging autorizado no MCP.
 
+### Direção de UX da descoberta — 06/11/2026
+
+- A página não carrega o diretório automaticamente: apresenta temas organizados para experimentar e o botão **Ver todos os profissionais**. O título, a grade e o refinamento só aparecem após uma busca, sugestão, filtro ou esse botão.
+- Na primeira ação, a introdução visual e as sugestões se recolhem com transição; a caixa de pesquisa fica no foco e os cards têm animação de saída mais evidente, em forma de baralho, antes de alcançar a grade.
+- Em 390 px, os cards usam uma coluna e surgem logo após a busca. Os controles de filtragem permanecem fechados no botão **Refinar filtros**, sem tomar a tela antes dos resultados.
+- Browser smoke executado novamente em 1440×1040 e 390×844: aprovado, sem overflow horizontal ou erros JavaScript.
+
 - 40 usuarios e 40 perfis sinteticos; seed idempotente e preservacao de edicoes.
 - Distribuicao: 16 fono, 12 psicologia, 4 terapia ocupacional, 4 nutricao, 4 fisioterapia.
 - Busca por temas, modalidade, local e idade; paginacao sem duplicatas.

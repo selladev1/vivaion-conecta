@@ -3,7 +3,7 @@
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state = { catalog:null, mode:"", page:1, total:0, topics:[], session:null, accounts:[], request:0, controller:null, animations:[], aiOptOutQuery:"" };
+const state = { catalog:null, mode:"", page:1, total:0, topics:[], session:null, accounts:[], request:0, controller:null, animations:[], aiOptOutQuery:"", active:false, directoryMoved:false };
 const initials = (name) => name.split(" ").slice(0,2).map(n => n[0]).join("");
 let toastTimer;
 function toast(text){ $("#toast").textContent=text; $("#toast").hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>$("#toast").hidden=true,4500); }
@@ -45,12 +45,12 @@ function animateResultCards(){
  const source=$(".search-shell").getBoundingClientRect();
  const run=state.request;
  for(const [index,card] of cards.entries()){
-  const target=card.getBoundingClientRect(); const spread=(index%4-1.5)*7;
+  const target=card.getBoundingClientRect(); const spread=(index%4-1.5)*13;
   const x=source.left+source.width/2-target.left-target.width/2+spread;
-  const y=source.bottom-target.top-10-(index%4)*5;
-  const rotation=(index%2?1:-1)*(3+(index%3));
+  const y=source.bottom-target.top-4-(index%4)*11;
+  const rotation=(index%2?1:-1)*(7+(index%3)*2);
   card.inert=true;card.setAttribute("aria-hidden","true");card.style.willChange="transform, opacity";
-  const animation=card.animate([{transform:`translate(${x}px, ${y}px) rotate(${rotation}deg) scale(.975)`,opacity:0},{transform:"translate(0, 0) rotate(0)",opacity:1}],{duration:650,delay:index*55,easing:"cubic-bezier(.22,.8,.25,1)",fill:"both"});
+  const animation=card.animate([{transform:`translate(${x}px, ${y}px) rotate(${rotation}deg) scale(.91)`,opacity:.18},{offset:.42,transform:`translate(${x*.18}px, ${y*.18}px) rotate(${rotation*.28}deg) scale(1.02)`,opacity:1},{transform:"translate(0, 0) rotate(0)",opacity:1}],{duration:820,delay:Math.min(index,7)*80,easing:"cubic-bezier(.16,.84,.27,1)",fill:"both"});
   state.animations.push(animation);
  }
  Promise.allSettled(state.animations.map(animation=>animation.finished)).then(()=>{
@@ -60,6 +60,16 @@ function animateResultCards(){
   $$("#cards .profile-card[inert]").forEach(card=>{card.inert=false;card.removeAttribute("aria-hidden");card.style.willChange="";});
  });
 }
+function activateDirectory(){
+ if(state.active)return;
+ state.active=true;
+ const hero=$("#hero"),discovery=$("#discovery"),directory=$("#directory");
+ directory.hidden=false;
+ hero.classList.add("hero-dismissed");hero.setAttribute("aria-hidden","true");hero.inert=true;
+ discovery.classList.add("discovery-dismissed");discovery.setAttribute("aria-hidden","true");discovery.inert=true;
+ if(window.matchMedia("(max-width: 760px)").matches&&!state.directoryMoved){$(".search-shell").after(directory);state.directoryMoved=true;}
+}
+function activateAndSearch({animate=true}={}){activateDirectory();search(false,false,animate);}
 function setSearching(searching){
  $("#search-loading").hidden=!searching;$("#search-button").setAttribute("aria-busy",String(searching));
  $("#search-button-label").textContent=searching?"Buscando...":"Encontrar";
@@ -89,7 +99,7 @@ async function search(append=false,scroll=false,animate=false){
  finally{if(current===state.request){$("#cards").setAttribute('aria-busy','false');$("#search-button").disabled=false;$("#load-more").disabled=false;setSearching(false);}}
 }
 function mode(value){state.mode=value;$$('[data-mode]').forEach(b=>{b.classList.toggle('active',b.dataset.mode===value);b.setAttribute('aria-pressed',String(b.dataset.mode===value));});}
-function reset(){ $("#search-query").value='';['#city','#profession','#audience','#topic'].forEach(s=>$(s).value='');$("#accepting").checked=false;state.topics=[];mode('');search();}
+function reset(){ $("#search-query").value='';['#city','#profession','#audience','#topic'].forEach(s=>$(s).value='');$("#accepting").checked=false;state.topics=[];mode('');$("#directory").classList.remove('filters-open');$("#mobile-refine").setAttribute('aria-expanded','false');search(false,false,true);}
 function openDialog(id){const d=$('#'+id);if(!d.open)d.showModal();}
 async function showProfile(id){
  try{const p=await api('/api/professionals/'+encodeURIComponent(id)); const c=state.catalog;
@@ -101,27 +111,28 @@ function renderAccounts(){const profession=$("#account-filter").value;$("#accoun
 async function showAccounts(){if(!state.catalog){toast('Aguarde o carregamento do cat\u00e1logo.');return;}if(state.session){showEditor();return;}try{const result=await api('/api/demo/accounts');state.accounts=result.accounts;renderAccounts();$("#account-error").hidden=true;openDialog('account-dialog');}catch(e){toast(e.message);}}
 async function login(id){$$('[data-login]').forEach(b=>b.disabled=true);try{state.session=await api('/api/demo/session',{method:'POST',data:{user_id:id}});$("#account-dialog").close();$("#account-button").textContent='Meu perfil de teste';showEditor();}catch(e){$("#account-error").textContent=e.message;$("#account-error").hidden=false;}finally{$$('[data-login]').forEach(b=>b.disabled=false);}}
 function showEditor(){const p=state.session.profile;$("#editor-identity").innerHTML=`<div class="profile-identity"><div class="avatar avatar-${esc(p.profession)}" aria-hidden="true">${esc(initials(p.name))}</div><div><strong>${esc(p.name)}</strong><p>${esc(state.catalog.professions[p.profession])} \u00b7 ${esc(p.id)}</p></div></div>`;$("#edit-headline").value=p.headline;$("#edit-bio").value=p.bio;$("#edit-accepting").checked=p.accepting;$("#edit-topics").innerHTML=Object.entries(state.catalog.topics).filter(([,v])=>v.professions.includes(p.profession)).map(([k,v])=>`<label><input type="checkbox" value="${esc(k)}" ${p.topics.includes(k)?'checked':''}>${esc(v.label)}</label>`).join('');$("#edit-status").hidden=true;openDialog('editor-dialog');}
-$("#search-form").addEventListener('submit',e=>{e.preventDefault();state.topics=[];state.aiOptOutQuery='';$("#topic").value='';search(false,false,true);});
-$("#profession").addEventListener('change',()=>search());$("#city").addEventListener('change',()=>search());$("#audience").addEventListener('change',()=>search());$("#accepting").addEventListener('change',()=>search());
-$("#topic").addEventListener('change',()=>{state.topics=$("#topic").value?[$("#topic").value]:[];search();});
+$("#search-form").addEventListener('submit',e=>{e.preventDefault();state.topics=[];state.aiOptOutQuery='';$("#topic").value='';activateAndSearch();});
+$("#profession").addEventListener('change',()=>activateAndSearch());$("#city").addEventListener('change',()=>activateAndSearch());$("#audience").addEventListener('change',()=>activateAndSearch());$("#accepting").addEventListener('change',()=>activateAndSearch());
+$("#topic").addEventListener('change',()=>{state.topics=$("#topic").value?[$("#topic").value]:[];activateAndSearch();});
 $("#clear-filters").addEventListener('click',reset);$("#empty-reset").addEventListener('click',reset);
 $("#load-more").addEventListener('click',()=>{state.page++;search(true);});
+$("#browse-all").addEventListener('click',()=>activateAndSearch());
+$("#mobile-refine").addEventListener('click',()=>{const directory=$("#directory"),open=directory.classList.toggle('filters-open');$("#mobile-refine").setAttribute('aria-expanded',String(open));$("#mobile-refine").innerHTML=open?'Ocultar filtros <span aria-hidden="true">&#8593;</span>':'Refinar filtros <span aria-hidden="true">&#8595;</span>';});
 $("#account-button").addEventListener('click',showAccounts);$("#demo-start").addEventListener('click',showAccounts);$("#account-filter").addEventListener('change',renderAccounts);$("#privacy-button").addEventListener('click',()=>openDialog('info-dialog'));
 document.addEventListener('click',e=>{
  const b=e.target.closest('button');if(!b)return;
- if(b.dataset.mode!==undefined){mode(b.dataset.mode);search();}
- if(b.dataset.query!==undefined){$("#search-query").value=b.dataset.query;state.topics=[];state.aiOptOutQuery='';$("#topic").value='';search(false,false,true);}
+ if(b.dataset.mode!==undefined){mode(b.dataset.mode);activateAndSearch();}
+ if(b.dataset.query!==undefined){$("#search-query").value=b.dataset.query;state.topics=[];state.aiOptOutQuery='';$("#topic").value='';activateAndSearch();}
  if(b.dataset.profile)showProfile(b.dataset.profile);
  if(b.dataset.close)$('#'+b.dataset.close).close();
  if(b.dataset.login)login(b.dataset.login);
- if(b.dataset.clear){const key=b.dataset.clear;if(key==='mode')mode('');else if(key.startsWith('topic:')){state.topics=state.topics.filter(t=>t!==key.slice(6));$("#topic").value=state.topics.length===1?state.topics[0]:'';}else if(key.startsWith('ai-topic:'))state.aiOptOutQuery=$("#search-query").value.trim();else if(key==='accepting')$("#accepting").checked=false;else $('#'+key).value='';search();}
+ if(b.dataset.clear){const key=b.dataset.clear;if(key==='mode')mode('');else if(key.startsWith('topic:')){state.topics=state.topics.filter(t=>t!==key.slice(6));$("#topic").value=state.topics.length===1?state.topics[0]:'';}else if(key.startsWith('ai-topic:'))state.aiOptOutQuery=$("#search-query").value.trim();else if(key==='accepting')$("#accepting").checked=false;else $('#'+key).value='';search(false,false,true);}
  if(b.id==='simulate-contact'){$('#contact-result').textContent='Interesse simulado! Na vers\u00e3o validada, este passo apresentar\u00e1 os canais autorizados pelo profissional. Nenhuma mensagem foi enviada.';$('#contact-result').hidden=false;}
 });
 $("#editor-form").addEventListener('submit',async e=>{e.preventDefault();const topics=$$('#edit-topics input:checked').map(i=>i.value);if(!topics.length||topics.length>5){$("#edit-status").textContent='Selecione de 1 a 5 temas.';$("#edit-status").hidden=false;return;}$('#save-profile').disabled=true;try{const result=await api('/api/me/profile',{method:'PATCH',data:{headline:$('#edit-headline').value,bio:$('#edit-bio').value,topics,accepting:$('#edit-accepting').checked},csrf:true});state.session.profile=result.profile;$('#edit-status').textContent='Perfil fict\u00edcio salvo. A busca j\u00e1 reflete a altera\u00e7\u00e3o.';$('#edit-status').hidden=false;search();}catch(err){$('#edit-status').textContent=err.message;$('#edit-status').hidden=false;}finally{$('#save-profile').disabled=false;}});
 $('#logout').addEventListener('click',async()=>{try{await api('/api/logout',{method:'POST',data:{},csrf:true});state.session=null;$('#editor-dialog').close();$('#account-button').textContent='Sou profissional \u2197';toast('Sess\u00e3o de teste encerrada.');}catch(e){toast(e.message);}});
 async function init(){
- $('#cards').innerHTML=Array.from({length:6},()=>'<div class="skeleton" aria-hidden="true"></div>').join('');
- try{state.catalog=await api('/api/catalog');fillSelect('#profession',Object.entries(state.catalog.professions));fillSelect('#account-filter',Object.entries(state.catalog.professions));fillSelect('#audience',Object.entries(state.catalog.audiences));fillSelect('#city',state.catalog.cities.map(c=>[c,c]));fillSelect('#topic',Object.entries(state.catalog.topics).map(([k,v])=>[k,v.label]));$("#ai-consent-note").hidden=!state.catalog.ai_enabled;await search();
+ try{state.catalog=await api('/api/catalog');fillSelect('#profession',Object.entries(state.catalog.professions));fillSelect('#account-filter',Object.entries(state.catalog.professions));fillSelect('#audience',Object.entries(state.catalog.audiences));fillSelect('#city',state.catalog.cities.map(c=>[c,c]));fillSelect('#topic',Object.entries(state.catalog.topics).map(([k,v])=>[k,v.label]));$("#ai-consent-note").hidden=!state.catalog.ai_enabled;
  // A missing demo session is normal and does not prevent directory use.
  try{state.session=await api('/api/session');$('#account-button').textContent='Meu perfil de teste';}catch{}
  }catch(e){$('#cards').innerHTML='';$('#cards').setAttribute('aria-busy','false');$('#results-summary').textContent='Cat\u00e1logo indispon\u00edvel';$('#search-error').textContent='N\u00e3o foi poss\u00edvel carregar o cat\u00e1logo. Recarregue a p\u00e1gina para tentar novamente.';$('#search-error').hidden=false;}
